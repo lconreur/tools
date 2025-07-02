@@ -49,3 +49,9 @@ Dans chaque dossier :
 Exemple pour lire la ligne complète :
 A partir du dossier contenant le script et le fichier aliases.txt :
 python3 recuperer_fichier_JGI_vdef.py
+
+# cree_mes_qsub_a_partir_des_alias.xlsx
+fichier excel créant les commandes qsub permettant de lancer le job antismash à partir des noms de fichiers des génomes. Il nécessite au préalable de connaître les noms des fichiers gff et fasta (voir census_filename_in_repo_and_sub_repo.py)
+
+# census_filename_in_repo_and_sub_repo.py
+récupère les noms de répertoires, ainsi que les fichiers contenus dans ces répertoires : une colonne pour les gff, une colonne pour les fasta.
