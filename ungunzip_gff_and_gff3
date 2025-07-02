@@ -1,0 +1,1 @@
+find . -type f \( -name "*.gff.gz" -o -name "*.gff3.gz" \) -exec echo gunzip {} \; 
