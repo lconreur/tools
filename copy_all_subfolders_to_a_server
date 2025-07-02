@@ -1,0 +1,1 @@
+for d in */; do scp -r "$d" lconreur@front.migale.inrae.fr:/home/lconreur/work/antismash/64genomes/; done
