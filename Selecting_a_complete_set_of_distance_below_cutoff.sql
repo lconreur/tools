@@ -3,6 +3,7 @@ SELECT substr(gbka.path, length(gbka.path) - instr(reverse(gbka.path), '/') + 2)
   substr(gbka.path, length(gbkb.path) - instr(reverse(gbkb.path), '/') + 2) AS filenameB,
   o.Genre_espece,
   o.Genus,
+  o.alias,
   t.*,
   d.distance,
   d.jaccard, 
