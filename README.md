@@ -1,8 +1,8 @@
 Ceci est mon premier fichier README. Ce répertoire contient les outils développés au fur et à mesure de mes besoins.
 
 # tools
-# add prefix (3digits) from folder.py
-Ce script ajoute un préfixe aux noms de fichiers contenant ".region". Le préfixe est défini par les 3 premiers caractères du répertoire contenant le fichier.
+# add_prefix_(to_)_from_folder.py
+Ce script ajoute un préfixe aux noms de fichiers contenant ".region". Le préfixe est défini par les caractères avant le premier _ du répertoire contenant le fichier.
 Ce script crée un fichier de log indiquant le nombre de fichiers renommés, leur nom initial et leur nouveau nom.
 Si le script est lancé une deuxième fois, le fichier de log est cumulatif.
 Ce script s'applique aux fichiers présents dans le même répertoire que lui et dans ses sous-répertoires.
