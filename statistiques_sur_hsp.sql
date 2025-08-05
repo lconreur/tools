@@ -49,7 +49,7 @@ ORDER BY bit_score
 LIMIT 1
 OFFSET (SELECT CAST(0.99 * COUNT(*) AS INTEGER) FROM hsp) - 1;
 
---filtré sur bit_score > 297 => 1115 lignes
+--filtré sur bit_score > 287 => 1255 lignes
 SELECT 
   gbk.organism,
   h.accession,
@@ -60,5 +60,47 @@ JOIN cds c ON sc.cds_id = c.id
 JOIN gbk ON gbk.id = c.gbk_id
 JOIN hsp h ON h.cds_id = sc.cds_id
 GROUP BY gbk.organism, h.accession
-HAVING AVG(h.bit_score) >= 297
+HAVING AVG(h.bit_score) >= 287
+ORDER BY gbk.organism, nb_hsp DESC;
+
+--filtré sur bit_score avec calcul percentile 0.95 imbriqué dans le HAVING
+SELECT 
+  gbk.organism,
+  h.accession,
+  COUNT(DISTINCT h.id) AS nb_hsp,
+  AVG(h.bit_score) AS avg_bit_score
+FROM scanned_cds sc
+JOIN cds c ON sc.cds_id = c.id
+JOIN gbk ON gbk.id = c.gbk_id
+JOIN hsp h ON h.cds_id = sc.cds_id
+GROUP BY gbk.organism, h.accession
+HAVING AVG(h.bit_score) >= 
+	(
+	SELECT bit_score
+	FROM hsp
+	ORDER BY bit_score
+	LIMIT 1
+	OFFSET (SELECT CAST(0.95 * COUNT(*) AS INTEGER) FROM hsp) - 1
+	)
+ORDER BY gbk.organism, nb_hsp DESC;
+
+--filtré sur bit_score avec calcul percentile 0.99 imbriqué dans le HAVING
+SELECT 
+  gbk.organism,
+  h.accession,
+  COUNT(DISTINCT h.id) AS nb_hsp,
+  AVG(h.bit_score) AS avg_bit_score
+FROM scanned_cds sc
+JOIN cds c ON sc.cds_id = c.id
+JOIN gbk ON gbk.id = c.gbk_id
+JOIN hsp h ON h.cds_id = sc.cds_id
+GROUP BY gbk.organism, h.accession
+HAVING AVG(h.bit_score) >= 
+	(
+	SELECT bit_score
+	FROM hsp
+	ORDER BY bit_score
+	LIMIT 1
+	OFFSET (SELECT CAST(0.99 * COUNT(*) AS INTEGER) FROM hsp) - 1
+	)
 ORDER BY gbk.organism, nb_hsp DESC;
