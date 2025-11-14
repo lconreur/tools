@@ -6,5 +6,4 @@ inner join bgc_record br on g.id = br.gbk_id
 inner join connected_component cc on br.id = cc.record_id 
 inner join hsp h on c.id = h.cds_id 
 inner join bgc_record_family brf on br.id = brf.record_id 
-group by g.id, g.organism , g.description , o.Taxo_Clade , o.Genre_espece , br.id, br.category , br.product
 order by g.organism , g.description , o.Taxo_Clade , o.Genre_espece , br.id, br.category , br.product
