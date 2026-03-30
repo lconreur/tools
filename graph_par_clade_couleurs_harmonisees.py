@@ -1,14 +1,36 @@
+#FINAL
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import numpy as np
 
-# 1. Chargement et préparation des données
+# --- 1. CONFIGURATION ET COULEURS ---
 file_name = 'clade_org_bin_count_clacla.csv'
 
-try:
-    df = pd.read_csv(file_name, sep=';')
+# Palette Tol Light + Sources (Optimisée Tritanopia)
+bgc_color_map = {
+    'NRPS':        '#FFEA80', # Jaune (Source A)
+    'NRPS-like':   '#C99B61', # Ambre (Source B)
+    'T1PKS':       '#9E2A2B', # Brique (Source A)
+    'T3PKS':       "#C27AD4", #'#A06CD5', # Violet (Source B)
+    'terpene':     '#88CCEE', # Bleu (Source unique)
+    'fungal-RiPP': '#999933'  # Olive (Source unique)
+}
 
-    # EXCLUSION identique au graph cumulé
+# Couleurs fixes pour les Clades (ton image de référence)
+clade_color_map_fixed = {
+    'Residual Polyporoid': '#2E75B6',
+    'Phlebioid': '#92D050',
+    'Gelatoporia': '#833C0C',
+    'Antrodia': '#A6A6A6',
+    'Core Polyporoid': '#8CD3E8'
+}
+
+try:
+    plt.close('all') # Nettoyage de la mémoire
+    
+    # Chargement des données
+    df = pd.read_csv(file_name, sep=';')
     to_exclude = ['betalactone', 'indole', 'terpene-precursor']
 
     df_pivot = df.pivot_table(
@@ -18,94 +40,107 @@ try:
         aggfunc='sum'
     ).fillna(0)
 
-    # Filtrage des colonnes exclues
+    # Filtrage et Tri
     df_pivot = df_pivot.drop(columns=[c for c in to_exclude if c in df_pivot.columns])
+    desired_order = ['terpene', 'NRPS', 'NRPS-like', 'T1PKS', 'T3PKS', 'fungal-RiPP']
+    existing_columns = [c for c in desired_order if c in df_pivot.columns]
+    df_pivot = df_pivot[existing_columns]
     df_pivot = df_pivot.sort_index(level=['Taxo_Clade', 'Genre_espece'])
 
-    # 2. TES COULEURS EXACTES
-    bgc_color_map = {
-        'NRPS': '#AEC7E8',       # Bleu ciel poudré
-        'NRPS-like': '#D1E3F3',  # Bleu très pâle
-        'T1PKS': '#FFADAD',      # Saumon / Rose pastel
-        'T3PKS': '#FFD6A5',      # Pêche / Crème
-        'terpene': "#C5C5B8",    # Jaune paille pastel (ton gris beige)
-        'fungal-RiPP': '#CAFFBF' # Menthe très douce
-    }
 
-    # 3. Couleurs des Clades (tab20)
     unique_clades = df_pivot.index.get_level_values('Taxo_Clade').unique()
-    clade_colors = plt.get_cmap('tab20', len(unique_clades))
-    clade_color_map = {clade: clade_colors(i) for i, clade in enumerate(unique_clades)}
 
-    # 4. Boucle pour générer un graphique par type de BGC restant
-    unique_bgcs = df_pivot.columns.tolist()
-
-    for bgc_type in unique_bgcs:
-        fig, ax = plt.subplots(figsize=(24, 12))
+    # --- 2. CONSTRUCTION DU DATAFRAME AVEC ESPACES (SPACERS) ---
+    df_plot = pd.DataFrame()
+    for i, clade in enumerate(unique_clades):
+        clade_data = df_pivot.xs(clade, level='Taxo_Clade')
+        df_plot = pd.concat([df_plot, clade_data])
         
-        data_to_plot = df_pivot[bgc_type]
-        current_color = bgc_color_map.get(bgc_type, '#7f7f7f')
+        # Ajout d'une colonne vide (spacer) entre les clades
+        if i < len(unique_clades) - 1:
+            spacer_name = f" " * (i + 1) # Label unique pour l'axe X
+            spacer = pd.DataFrame(0, index=[spacer_name], columns=df_pivot.columns)
+            df_plot = pd.concat([df_plot, spacer])
 
-        data_to_plot.plot(
-            kind='bar', 
-            ax=ax,
-            color=current_color,
-            width=0.8, 
-            edgecolor='black', 
-            linewidth=0.5
+    # --- 3. TRACÉ DU GRAPHIQUE CUMULÉ ---
+    fig, ax = plt.subplots(figsize=(30, 15))
+
+    df_plot.plot(
+        kind='bar', 
+        stacked=True, 
+        ax=ax, 
+        color=[bgc_color_map.get(c, '#7f7f7f') for c in df_plot.columns],
+        width=0.85, 
+        edgecolor='black', 
+        linewidth=0.5
+    )
+
+    # --- 4. NAVIGATION ET STYLE (BOUCLE PAR CLADE) ---
+    xticklabels = ax.get_xticklabels()
+    current_idx = 0
+    
+    for i, clade in enumerate(unique_clades):
+        clade_size = len(df_pivot.xs(clade, level='Taxo_Clade'))
+        
+        # Style des noms d'organismes (Italique + Couleur)
+        color = clade_color_map_fixed.get(clade, '#000000') # Noir si non trouvé
+        for j in range(current_idx, current_idx + clade_size):
+            xticklabels[j].set_style('italic')
+            xticklabels[j].set_color(color)
+            xticklabels[j].set_weight('bold')
+            xticklabels[j].set_fontsize(10)
+        
+        # Texte de la Clade sur DEUX LIGNES si nécessaire
+        # On remplace l'espace par un saut de ligne
+        display_clade = clade.replace(" ", "\n")
+        
+        center_pos = current_idx + (clade_size - 1) / 2
+        ax.text(
+            center_pos, 
+            ax.get_ylim()[1] * 1.02, 
+            display_clade, 
+            ha='center', va='bottom', 
+            color=color, 
+            fontweight='bold', 
+            fontsize=13,
+            linespacing=0.9
         )
 
-        # 5. Axe X (Espèces)
-        species_labels = [index[1] for index in df_pivot.index]
-        ax.set_xticklabels(species_labels)
+        # AJOUT DE LA LIGNE DE SÉPARATION (GRIS CLAIR)
+        if i < len(unique_clades) - 1:
+            separator_pos = current_idx + clade_size  # Milieu du spacer
+            ax.axvline(x=separator_pos, color='#D3D3D3', linestyle='--', linewidth=1, zorder=0)
 
-        xticklabels = ax.get_xticklabels()
-        for i, label in enumerate(xticklabels):
-            clade_name = df_pivot.index[i][0]
-            label.set_style('italic')
-            label.set_color(clade_color_map[clade_name])
-            label.set_weight('bold')
-            label.set_fontsize(10)
+        # Avancement de l'index (Taille clade + 1 spacer)
+        current_idx += (clade_size + 1)
 
-        # 6. Délimitation des Clades
-        current_pos = -0.5
-        for clade in unique_clades:
-            count = (df_pivot.index.get_level_values('Taxo_Clade') == clade).sum()
-            ax.axvspan(current_pos, current_pos + count, color=clade_color_map[clade], alpha=0.1)
-            
-            plt.text(
-                current_pos + count/2, 
-                ax.get_ylim()[1] * 1.02, 
-                clade, 
-                ha='center', va='bottom', 
-                color=clade_color_map[clade], 
-                fontweight='bold',
-                fontsize=12
-            )
-            current_pos += count
+    # --- 5. FINALISATION ET SAUVEGARDE ---
+    plt.title('BGC global distribution', fontsize=26, pad=80)
+    plt.ylabel('Number of BGC', fontsize=16)
+    plt.xlabel('Organisms', fontsize=16)
+    plt.xticks(rotation=45, ha='right')
 
-        # 7. Légendes
-        bgc_patch = mpatches.Patch(color=current_color, label=bgc_type)
-        legend_bgc = ax.legend(handles=[bgc_patch], title='Type de BGC', bbox_to_anchor=(1.02, 1), loc='upper left')
-        ax.add_artist(legend_bgc)
+    # Légende (Extérieure droite pour ne pas être coupée)
+    legend_bgc = ax.legend(
+        title='Types of BGC', 
+        bbox_to_anchor=(1.02, 1), 
+        loc='upper left', 
+        frameon=False, 
+        fontsize=13
+    )
 
-        clade_patches = [mpatches.Patch(color=clade_color_map[c], label=c) for c in unique_clades]
-        plt.legend(handles=clade_patches, title='Clades', bbox_to_anchor=(1.02, 0.45), loc='upper left')
+    plt.subplots_adjust(right=0.85, top=0.82, bottom=0.2)
 
-        # 8. Finalisation
-        plt.title(f'Distribution des BGC : {bgc_type}', fontsize=22, pad=50)
-        plt.ylabel('Nombre de gbk', fontsize=14)
-        plt.xlabel('Organismes', fontsize=14)
-        plt.xticks(rotation=45, ha='right')
-        plt.subplots_adjust(right=0.82, top=0.88, bottom=0.22)
+    output_name = "analyse_bgc_CUMULE_final_pro.png"
+    plt.savefig(
+        output_name, 
+        dpi=300, 
+        bbox_extra_artists=(legend_bgc,), 
+        bbox_inches='tight'
+    )
+    plt.show()
 
-        # Sauvegarde
-        safe_name = bgc_type.replace('/', '_').replace(' ', '_')
-        output_filename = f"analyse_bgc_{safe_name}.png"
-        plt.savefig(output_filename, dpi=300, bbox_inches='tight')
-        plt.close(fig) 
-        
-        print(f"Graphique généré : {output_filename}")
+    print(f"\n[SUCCÈS] Le graphique a été généré : {output_name}")
 
 except Exception as e:
     print(f"Erreur : {e}")
